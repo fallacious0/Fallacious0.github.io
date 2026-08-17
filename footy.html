@@ -252,18 +252,47 @@
     </div>
 
     <script>
-     // NO API KEY REQUIRED! 
-// Using ESPN's public endpoints
-
+// ESPN Public Endpoints
 const SPORT_ENDPOINTS = {
-    football: "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard", // English Premier League
+    football: "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard",
     nba: "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard",
     nfl: "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
     hockey: "https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard"
 };
 
+// Default featured Twitch channels per sport
+const DEFAULT_STREAMS = {
+    football: "easportsfc",
+    nba: "nba",
+    nfl: "nfl",
+    hockey: "nhl"
+};
+
 let currentSport = 'football';
 
+// 1. Auto-detect current domain to satisfy Twitch security rules
+function getTwitchParentDomain() {
+    const host = window.location.hostname;
+    // If opening as local file (file://), default to localhost
+    return host === "" ? "localhost" : host;
+}
+
+// 2. Load stream into iframe dynamically
+function loadStream(channelName, matchTitle) {
+    const parentDomain = getTwitchParentDomain();
+    const iframe = document.querySelector('.video-wrapper iframe');
+    const titleElement = document.querySelector('.stream-title');
+
+    if (iframe) {
+        iframe.src = `https://player.twitch.tv/?channel=${channelName}&parent=${parentDomain}&muted=true`;
+    }
+
+    if (titleElement && matchTitle) {
+        titleElement.textContent = `Live: ${matchTitle}`;
+    }
+}
+
+// 3. Fetch and render live scores with click handlers
 async function fetchLiveScores(sport) {
     const container = document.getElementById('scores-container');
     container.innerHTML = '<div class="loading-text">Loading matches...</div>';
@@ -280,22 +309,21 @@ async function fetchLiveScores(sport) {
             return;
         }
 
-        container.innerHTML = matches.map(event => {
+        container.innerHTML = matches.map((event, index) => {
             const comp = event.competitions[0];
-            
-            // Extract Home and Away teams
             const homeTeam = comp.competitors.find(c => c.homeAway === 'home');
             const awayTeam = comp.competitors.find(c => c.homeAway === 'away');
             
-            // Check if game is live, scheduled, or finished
             const status = event.status.type;
-            const isLive = status.state === 'in'; // 'in' means game is currently playing
+            const isLive = status.state === 'in';
             const timeColor = isLive ? 'var(--live-red)' : 'var(--text-muted)';
+            const matchTitle = `${homeTeam.team.shortDisplayName} vs ${awayTeam.team.shortDisplayName}`;
             
             return `
-                <div class="score-card">
+                <div class="score-card ${index === 0 ? 'active-card' : ''}" 
+                     onclick="selectMatch('${matchTitle}', '${DEFAULT_STREAMS[sport]}', this)">
                     <div class="match-meta">
-                        <span>${data.leagues[0].abbreviation || sport.toUpperCase()}</span>
+                        <span>${data.leagues[0]?.abbreviation || sport.toUpperCase()}</span>
                         <span style="color: ${timeColor}; font-weight: bold;">${status.detail}</span>
                     </div>
                     <div class="team-row">
@@ -316,13 +344,33 @@ async function fetchLiveScores(sport) {
             `;
         }).join('');
 
+        // Automatically set player title to the first match in list
+        if (matches[0]) {
+            const firstComp = matches[0].competitions[0];
+            const home = firstComp.competitors.find(c => c.homeAway === 'home').team.shortDisplayName;
+            const away = firstComp.competitors.find(c => c.homeAway === 'away').team.shortDisplayName;
+            loadStream(DEFAULT_STREAMS[sport], `${home} vs ${away}`);
+        }
+
     } catch (error) {
         container.innerHTML = '<div class="loading-text">Failed to fetch scores.</div>';
         console.error(error);
     }
 }
 
-// Handle Sport Switching
+// 4. Handle score card selection
+function selectMatch(matchTitle, channel, cardElement) {
+    // Highlight active card
+    document.querySelectorAll('.score-card').forEach(card => {
+        card.style.borderColor = '#1f1f25';
+    });
+    cardElement.style.borderColor = 'var(--accent)';
+
+    // Update stream player
+    loadStream(channel, matchTitle);
+}
+
+// 5. Handle sport tab switching
 document.querySelectorAll('.sport-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         document.querySelectorAll('.sport-btn').forEach(b => b.classList.remove('active'));
@@ -332,12 +380,11 @@ document.querySelectorAll('.sport-btn').forEach(btn => {
     });
 });
 
-// Initialize first load
+// Initial load
 fetchLiveScores(currentSport);
 
-// Refresh every 60 seconds (Safe to do because there are no strict quotas!)
+// Auto refresh scores every 60 seconds
 setInterval(() => fetchLiveScores(currentSport), 60000);
-
     </script>
 </body>
 </html>
