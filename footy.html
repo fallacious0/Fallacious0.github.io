@@ -3,103 +3,373 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Sports Scores</title>
+    <title>Everystream | Live Sports</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #121212;
-            color: #ffffff;
-            padding: 20px;
+        :root {
+            --bg-base: #0a0a0c;
+            --bg-panel: #16161a;
+            --bg-hover: #222228;
+            --accent: #e2ff00; /* Sleek neon yellow/green accent */
+            --text-main: #ffffff;
+            --text-muted: #888891;
+            --live-red: #ff3333;
         }
-        .match-card {
-            background-color: #1e1e1e;
-            border-radius: 8px;
-            padding: 12px 16px;
-            margin-bottom: 10px;
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* App-like feel */
+        }
+
+        /* --- Navbar --- */
+        header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            max-width: 500px;
+            padding: 20px 40px;
+            background-color: var(--bg-base);
+            border-bottom: 1px solid #1f1f25;
         }
-        .team-names {
-            font-weight: bold;
+
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .match-score {
-            background-color: #ff3b30;
-            color: #fff;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.9em;
+
+        .logo span { color: var(--accent); }
+
+        .sport-filters {
+            display: flex;
+            gap: 12px;
         }
-        .match-time {
-            font-size: 0.85em;
-            color: #aaa;
+
+        .sport-btn {
+            background-color: var(--bg-panel);
+            color: var(--text-muted);
+            border: 1px solid transparent;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .sport-btn:hover { background-color: var(--bg-hover); color: var(--text-main); }
+        .sport-btn.active { background-color: var(--accent); color: #000; }
+
+        /* --- Main Layout --- */
+        .app-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* --- Video Player Area --- */
+        .player-section {
+            flex: 3;
+            padding: 30px 40px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .video-wrapper {
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 */
+            position: relative;
+            background-color: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border: none;
+        }
+
+        .stream-title {
+            margin-top: 20px;
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        /* --- Live Scores Sidebar --- */
+        .sidebar {
+            flex: 1;
+            min-width: 350px;
+            max-width: 450px;
+            background-color: var(--bg-panel);
+            border-left: 1px solid #1f1f25;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            font-size: 16px;
+            font-weight: 600;
+            border-bottom: 1px solid #1f1f25;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--live-red);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .pulse {
+            width: 8px;
+            height: 8px;
+            background-color: var(--live-red);
+            border-radius: 50%;
+            animation: pulse-anim 1.5s infinite;
+        }
+
+        @keyframes pulse-anim {
+            0% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(255, 51, 51, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0); }
+        }
+
+        .scores-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* --- Score Cards --- */
+        .score-card {
+            background-color: var(--bg-base);
+            border-radius: 10px;
+            padding: 16px;
+            transition: transform 0.2s;
+            cursor: pointer;
+            border: 1px solid #1f1f25;
+        }
+
+        .score-card:hover { border-color: var(--accent); }
+
+        .match-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .team-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .team-row:last-child { margin-bottom: 0; }
+
+        .team-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .team-logo { width: 24px; height: 24px; object-fit: contain; }
+        .team-name { font-size: 15px; font-weight: 600; }
+        .team-score { font-size: 16px; font-weight: 800; }
+
+        .loading-text { color: var(--text-muted); text-align: center; margin-top: 40px; font-size: 14px; }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .app-container { flex-direction: column; overflow-y: auto; }
+            .sidebar { min-width: 100%; border-left: none; border-top: 1px solid #1f1f25; }
+            .player-section { padding: 15px; }
+            header { padding: 15px; flex-direction: column; gap: 15px; }
         }
     </style>
 </head>
 <body>
 
-    <h2>⚽ Live Matches</h2>
-    <div id="scores-container">Loading live matches...</div>
+    <header>
+        <div class="logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="M19 3v18"/><path d="M5 12h14"/></svg>
+            Every<span>stream</span>
+        </div>
+        <div class="sport-filters" id="sport-filters">
+            <button class="sport-btn active" data-sport="football">Football</button>
+            <button class="sport-btn" data-sport="nba">NBA</button>
+            <button class="sport-btn" data-sport="nfl">NFL</button>
+            <button class="sport-btn" data-sport="hockey">Hockey</button>
+        </div>
+    </header>
+
+    <div class="app-container">
+        <!-- Main Player -->
+        <main class="player-section">
+            <div class="video-wrapper">
+                <!-- Replace with your Twitch/YouTube parent domain -->
+                <iframe src="https://player.twitch.tv/?channel=twitchsports&parent=localhost&muted=true" allowfullscreen></iframe>
+            </div>
+            <h1 class="stream-title">Main Event Broadcast</h1>
+        </main>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <span>Live Action</span>
+                <div class="live-indicator"><div class="pulse"></div> LIVE</div>
+            </div>
+            <div class="scores-list" id="scores-container">
+                <div class="loading-text">Fetching live data...</div>
+            </div>
+        </aside>
+    </div>
 
     <script>
         const API_KEY = "7a2315dd7c36efaeb1f7fb7b46c5e442";
+        
+        // Multi-sport API routing
+        const SPORT_ENDPOINTS = {
+            football: { host: "v3.football.api-sports.io", path: "/fixtures?live=all" },
+            nba: { host: "v2.nba.api-sports.io", path: "/games?live=all" },
+            nfl: { host: "v1.american-football.api-sports.io", path: "/games?live=all" },
+            hockey: { host: "v1.hockey.api-sports.io", path: "/games?live=all" }
+        };
 
-        async function loadLiveScores() {
+        let currentSport = 'football';
+
+        // Extract normalized data because API structures differ slightly per sport
+        function normalizeMatchData(sport, item) {
+            try {
+                if (sport === 'football') {
+                    return {
+                        league: item.league.name,
+                        time: item.fixture.status.elapsed ? item.fixture.status.elapsed + "'" : item.fixture.status.short,
+                        homeTeam: item.teams.home.name,
+                        awayTeam: item.teams.away.name,
+                        homeLogo: item.teams.home.logo,
+                        awayLogo: item.teams.away.logo,
+                        homeScore: item.goals.home ?? 0,
+                        awayScore: item.goals.away ?? 0
+                    };
+                } else {
+                    // Fallback normalizer for American sports (NBA, NFL, NHL)
+                    return {
+                        league: item.league?.name || "Pro League",
+                        time: item.game?.status?.short || item.status?.short || "LIVE",
+                        homeTeam: item.teams.home.name,
+                        awayTeam: item.teams.away.name,
+                        homeLogo: item.teams.home.logo,
+                        awayLogo: item.teams.away.logo,
+                        homeScore: item.scores?.home?.total ?? item.scores?.home ?? 0,
+                        awayScore: item.scores?.away?.total ?? item.scores?.away ?? 0
+                    };
+                }
+            } catch (e) {
+                return null; // Skip broken matches
+            }
+        }
+
+        async function fetchLiveScores(sport) {
             const container = document.getElementById('scores-container');
+            container.innerHTML = '<div class="loading-text">Loading matches...</div>';
+            
+            const config = SPORT_ENDPOINTS[sport];
             
             try {
-                const response = await fetch("https://v3.football.api-sports.io/fixtures?live=all", {
+                const response = await fetch(`https://${config.host}${config.path}`, {
                     method: "GET",
-                    headers: {
-                        "x-apisports-key": API_KEY
-                    }
+                    headers: { "x-apisports-key": API_KEY }
                 });
 
-                if (!response.ok) throw new Error("API request failed");
-
+                if (!response.ok) throw new Error("Network error");
                 const data = await response.json();
                 const matches = data.response;
 
                 if (!matches || matches.length === 0) {
-                    container.innerHTML = "<p>No live matches currently playing.</p>";
+                    container.innerHTML = `<div class="loading-text">No live ${sport} matches right now.</div>`;
                     return;
                 }
 
-                // Build match cards dynamically
                 container.innerHTML = matches.map(item => {
-                    const home = item.teams.home.name;
-                    const away = item.teams.away.name;
-                    const homeScore = item.goals.home ?? 0;
-                    const awayScore = item.goals.away ?? 0;
-                    const minute = item.fixture.status.elapsed;
-                    const league = item.league.name;
+                    const match = normalizeMatchData(sport, item);
+                    if (!match) return ''; // Skip if normalization failed
 
                     return `
-                        <div class="match-card">
-                            <div>
-                                <div style="font-size: 0.75em; color: #888;">${league}</div>
-                                <div class="team-names">${home} vs ${away}</div>
+                        <div class="score-card">
+                            <div class="match-meta">
+                                <span>${match.league}</span>
+                                <span style="color: var(--live-red); font-weight: bold;">${match.time}</span>
                             </div>
-                            <div style="text-align: right;">
-                                <span class="match-score">${homeScore} - ${awayScore}</span>
-                                <div class="match-time">${minute}'</div>
+                            <div class="team-row">
+                                <div class="team-info">
+                                    <img src="${match.homeLogo}" class="team-logo" alt="${match.homeTeam} logo">
+                                    <span class="team-name">${match.homeTeam}</span>
+                                </div>
+                                <span class="team-score">${match.homeScore}</span>
+                            </div>
+                            <div class="team-row">
+                                <div class="team-info">
+                                    <img src="${match.awayLogo}" class="team-logo" alt="${match.awayTeam} logo">
+                                    <span class="team-name">${match.awayTeam}</span>
+                                </div>
+                                <span class="team-score">${match.awayScore}</span>
                             </div>
                         </div>
                     `;
                 }).join('');
 
             } catch (error) {
-                container.innerHTML = "<p>Failed to load live scores.</p>";
+                container.innerHTML = '<div class="loading-text">Failed to fetch scores. Check API quota.</div>';
                 console.error(error);
             }
         }
 
-        // Initial load
-        loadLiveScores();
+        // Handle Sport Switching
+        document.querySelectorAll('.sport-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Update UI active state
+                document.querySelectorAll('.sport-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                
+                // Fetch new sport
+                currentSport = e.target.dataset.sport;
+                fetchLiveScores(currentSport);
+            });
+        });
 
-        // Refresh live score data every 60 seconds
-        setInterval(loadLiveScores, 60000);
+        // Initialize first load
+        fetchLiveScores(currentSport);
+        
+        // Refresh every 3 minutes (180,000 ms) to conserve API quota
+        setInterval(() => fetchLiveScores(currentSport), 180000);
+
     </script>
 </body>
 </html>
